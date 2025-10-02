@@ -5,8 +5,8 @@ w = 1
 R = np.sqrt(l**2 + w**2) # unit placeholder
 
 # for circular shape
-def pos_on_circle(R,phi,z=0):
-  return np.array([R*np.cos(phi),R*np.sin(phi),z])
+def pos_on_circle(R,phi,theta=0):
+  return np.array([R*np.cos(phi),R*np.sin(phi),R*np.sin(theta)])
 
 # for rectangular shape (convert to cartesian)
 def pos_on_rect(l=2,w=1,z=0):
@@ -23,13 +23,30 @@ def dir_vertical(up=True):
   else:
     return np.array([0,0,-1])
 
+# 3D thruster direction based on azimuthal and elevation angles
+def thruster_direction(theta, phi):
+    """
+    Compute thruster unit direction vector in body frame
+    given azimuth (theta) and elevation (phi).
+    
+    theta = azimuth (rad), rotation about z-axis
+    phi   = elevation (rad), rotation about y-axis
+
+    if phi = 0 you get in-plane vector,
+    if phi = +- pi/2 you get pure vertical vector (if theta = 0)
+    """
+    # Force direction in body frame
+    x = np.cos(theta) * np.cos(phi)
+    y = np.sin(theta) * np.cos(phi)
+    z = -np.sin(phi)
+    return np.array([x, y, z]) / np.linalg.norm([x, y, z])
 
 
 class Motor:
-  def __init__(self,pos,dir):
+  def __init__(self,pos: np.ndarray,theta=0,phi=0):
     
     self.pos = pos
-    self.thrust_unit_vect = dir / np.linalg.norm(dir)
+    self.thrust_unit_vect = thruster_direction(theta,phi)
 
     # T200 motor specs
 
@@ -61,20 +78,33 @@ class Configuration:
     
 
 
-# determines how many dofs the configuration has (goal is rank=6)
-def DOF_counter(config: Configuration):
 
-    cols = []
-    for m in config.motors:
-        torque = np.cross(m.pos, m.thrust_unit_vect)
-        col = np.hstack([m.thrust_unit_vect, torque])
-        cols.append(col)
+def DOF_Analysis(config: Configuration):
+  '''
+  Returns number of controllable DOFs the configuration has
+  Goal for project is 6 DOFs so control matrix needs atleast rank = 6
+  Will also provide which dofs are uncontrollable via nullspace of control matrix
 
-    B = np.array(cols).T   # shape 6×n
+  '''
+  cols = []
+  for m in config.motors:
+      torque = np.cross(m.pos, m.thrust_unit_vect)
+      col = np.hstack([m.thrust_unit_vect, torque])
+      cols.append(col)
 
-    rank = np.linalg.matrix_rank(B)
-    print("B:\n", B)
-    print("Rank:", rank)
+  B = np.array(cols).T   # shape 6×n
+  rank = np.linalg.matrix_rank(B)
+
+  # compute nullspace to determine which dofs are uncontrollable
+  u, s, vh = np.linalg.svd(B)
+  null_mask = (s <= 1e-10)
+  nullspace = vh[null_mask].T if np.any(null_mask) else None
+
+  print("B:\n", B)
+  print("Rank:", rank)
+  if nullspace is not None:
+    print("Nullspace (uncontrollable directions):\n", nullspace)
+  return B, rank, nullspace
 
 
 
@@ -84,23 +114,28 @@ def DOF_counter(config: Configuration):
 if __name__ == "__main__":
   six_motor_1 = Configuration(
     motors = [
-        Motor(pos_on_circle(R,np.pi/4),   dir_in_plane(7*np.pi/4)),
-        Motor(pos_on_circle(R,7*np.pi/4), dir_in_plane(np.pi/4)),
-        Motor(pos_on_circle(R,5*np.pi/4), dir_in_plane(3*np.pi/4)),
-        Motor(pos_on_circle(R,3*np.pi/4), dir_in_plane(5*np.pi/4)),
-        Motor(pos_on_circle(R,0),         dir_vertical()),   # vertical
-        Motor(pos_on_circle(R,np.pi),     dir_vertical(up=False)),   # vertical, opposite side
+        Motor(pos_on_circle(R,np.pi/4),   theta = 7*np.pi/4, phi = 0),
+        Motor(pos_on_circle(R,7*np.pi/4), theta = np.pi/4, phi = 0),
+        Motor(pos_on_circle(R,5*np.pi/4), theta = 3*np.pi/4, phi = 0),
+        Motor(pos_on_circle(R,3*np.pi/4), theta = 5*np.pi/4,phi = 0),
+        Motor(pos_on_circle(R,0),         theta = 0,phi = np.pi/2),   # vertical
+        Motor(pos_on_circle(R,np.pi),     theta = 0, phi = -np.pi/2),   # vertical, opposite side
     ]
   )
-  six_motor_2 = Configuration(
-    motors=[
-      Motor(pos_on_circle(R,np.pi/4),   dir_in_plane(7*np.pi/4)),
-      Motor(pos_on_circle(R,7*np.pi/4), dir_in_plane(np.pi/4)),
-      Motor(pos_on_circle(R,5*np.pi/4), dir_in_plane(3*np.pi/4)),
-      Motor(pos_on_circle(R,3*np.pi/4), dir_in_plane(5*np.pi/4)),
-      Motor(pos_on_circle(2*R/3,0),         dir_vertical()),   # vertical, offset y = +0.5
-      Motor(pos_on_circle(2*R/3,np.pi),     dir_vertical(up=False))   # vertical, opposite side, offset y = -0.5
+  nine_motor_1 = Configuration(
+    motors = [
+      Motor(pos_on_circle(R, np.pi/4,np.pi/4), theta = 7*np.pi/4, phi = 0),
+      Motor(pos_on_circle(R, 7*np.pi/4, np.pi/4), theta = np.pi/4, phi = 0),
+      Motor(pos_on_circle(R, 5*np.pi/4, np.pi/4), theta = 3*np.pi/4, phi = 0),
+      Motor(pos_on_circle(R, 3*np.pi/4, np.pi/4), theta = 5*np.pi/4, phi=0),
+      Motor(pos_on_circle(R, np.pi/4, 7*np.pi/4), theta = 7*np.pi/4, phi = 0),
+      Motor(pos_on_circle(R, 7*np.pi/4, 7*np.pi/4), theta = np.pi/4, phi = 0),
+      Motor(pos_on_circle(R, 5*np.pi/4, 7*np.pi/4), theta = 3*np.pi/4, phi = 0),
+      Motor(pos_on_circle(R, 3*np.pi/4, 7*np.pi/4), theta = 7*np.pi/4, phi = 0),
+      Motor(pos_on_circle(0, 0, 0), theta = 0, phi = np.pi/2)
     ]
   )
+
   
-  DOF_counter(six_motor_2)
+  DOF_Analysis(six_motor_1)
+  DOF_Analysis(nine_motor_1)
