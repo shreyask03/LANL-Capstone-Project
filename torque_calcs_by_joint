@@ -1,0 +1,94 @@
+# @title Default title text
+
+import math
+
+def torque_from_end_load(
+    link_lengths_m,
+    end_load_mass_kg: float = None,
+    end_load_force_N: float = None,
+    gravity_m_s2: float = 9.81,
+    arm_angle_deg: float = 90.0,
+    safety_factor: float = 1.5,
+    material_density_kg_m3: float = None,
+    outer_diameter_m: float = None,
+    inner_diameter_m: float = 0.0,
+    fluid_density_kg_m3: float = 1000.0
+):
+    if (end_load_mass_kg is None) == (end_load_force_N is None):
+        raise ValueError("Provide exactly one of end_load_mass_kg or end_load_force_N.")
+
+    if material_density_kg_m3 is None or outer_diameter_m is None:
+        raise ValueError("Provide material_density_kg_m3 and outer_diameter_m.")
+
+    if inner_diameter_m < 0 or inner_diameter_m >= outer_diameter_m:
+        raise ValueError("inner_diameter_m must satisfy 0 <= Di < Do.")
+
+    F = end_load_force_N if end_load_force_N is not None else end_load_mass_kg * gravity_m_s2
+
+    geom = abs(math.sin(math.radians(arm_angle_deg)))  
+
+    n = len(link_lengths_m)
+    if n == 0:
+        return []
+
+    cum_from_j = [0.0] * n
+    running = 0.0
+    for j in range(n - 1, -1, -1):
+        running += link_lengths_m[j]
+        cum_from_j[j] = running
+
+    torques = [F * cum_from_j[j] * geom for j in range(n)]
+
+    A_metal = 0.25 * math.pi * (outer_diameter_m**2 - inner_diameter_m**2)
+    A_outer = 0.25 * math.pi * (outer_diameter_m**2)
+
+    suffix_len = [0.0] * (n + 1)
+    for idx in range(n - 1, -1, -1):
+        suffix_len[idx] = suffix_len[idx + 1] + link_lengths_m[idx]
+
+    for j in range(n):
+        tau_j = 0.0
+        for k in range(j, n):
+            Lk = link_lengths_m[k]
+            V_metal = A_metal * Lk
+            V_disp  = A_outer * Lk
+            W = gravity_m_s2 * (material_density_kg_m3 * V_metal - fluid_density_kg_m3 * V_disp)
+            dist_j_to_end_k = suffix_len[j] - suffix_len[k + 1]
+            r = dist_j_to_end_k - 0.5 * Lk
+            tau_j += W * r * geom
+        torques[j] += tau_j
+
+    return [t * safety_factor for t in torques]
+
+
+link_lengths_m = [0.1,0.1,0.1]  
+
+end_load_mass_kg = 2.25           
+end_load_force_N = None           
+
+arm_angle_deg = 90.0  # Total arm angle from first joint to tip 
+safety_factor = 1.5                  
+
+###### COMPUTE ######
+torques_Nm = torque_from_end_load(
+    link_lengths_m=link_lengths_m,
+    end_load_mass_kg=end_load_mass_kg,
+    end_load_force_N=end_load_force_N,
+    arm_angle_deg=arm_angle_deg,
+    safety_factor=safety_factor,
+    material_density_kg_m3=2700, # Aluminum typical
+    outer_diameter_m=0.00001, # 4 cm
+    inner_diameter_m=0.0,
+    fluid_density_kg_m3=1000.0
+)
+
+# terminal output
+print(f"\nTorque requirements by joint for {len(link_lengths_m)} links\n")
+if end_load_mass_kg != None:
+  print(f"End load mass: {end_load_mass_kg} kg")
+else: print(f"End load force: {end_load_force_N} N")
+print(f"Total arm angle: {arm_angle_deg} degrees")
+print(f"Safety factor: {safety_factor}")
+print(f"Link lengths (m): {link_lengths_m}\n")
+for i, tau in enumerate(torques_Nm, start=1):
+    print(f"Joint {i}: {tau:.3f} N·m")
