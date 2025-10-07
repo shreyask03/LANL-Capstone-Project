@@ -26,7 +26,7 @@ def dir_vertical(up=True):
 # 3D thruster direction based on azimuthal and elevation angles
 def thruster_direction(theta, phi):
     """
-    Compute thruster unit direction vector in body frame
+    Compute thruster unit direction vector in body frame (relative to CG/CoM)
     given azimuth (theta) and elevation (phi).
     
     theta = azimuth (rad), rotation about z-axis
@@ -135,7 +135,21 @@ if __name__ == "__main__":
       Motor(pos_on_circle(0, 0, 0), theta = 0, phi = np.pi/2)
     ]
   )
+  m2_pro_config = Configuration(
+    motors = [
+      # top
+      Motor(pos_on_rect(l=0.5,w=-0.5,z=0.5), theta = np.pi/4, phi = np.pi/4),
+      Motor(pos_on_rect(l=0.5,w=0.5,z=0.5), theta = 3*np.pi/4, phi = np.pi/4 ),
+      Motor(pos_on_rect(l=-0.5,w=0.5,z=0.5), theta = 7*np.pi/4, phi = np.pi/4),
+      Motor(pos_on_rect(l=-0.5,w=-0.5,z=0.5), theta = 5*np.pi/4, phi = np.pi/4),
+      # bottom
+      Motor(pos_on_rect(l=0.5,w=-0.5,z=-0.5), theta = np.pi/4, phi = -np.pi/4),
+      Motor(pos_on_rect(l=0.5,w=0.5,z=-0.5), theta = 3*np.pi/4, phi = -np.pi/4 ),
+      Motor(pos_on_rect(l=-0.5,w=0.5,z=-0.5), theta = 7*np.pi/4, phi = -np.pi/4),
+      Motor(pos_on_rect(l=-0.5,w=-0.5,z=-0.5), theta = 5*np.pi/4, phi = -np.pi/4)
+    ]
+  )
 
-  
-  DOF_Analysis(six_motor_1)
-  DOF_Analysis(nine_motor_1)
+  # DOF_Analysis(six_motor_1)
+  # DOF_Analysis(nine_motor_1)
+  DOF_Analysis(m2_pro_config)
