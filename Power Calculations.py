@@ -15,7 +15,6 @@ def load_csv_files(folder_path):
 
 
 if __name__ == "__main__":
-    # folder = input("Enter the folder path containing CSV files: ").strip()
     folder = "Thruster Data"
     result = load_csv_files(folder)
     
@@ -27,6 +26,7 @@ if __name__ == "__main__":
 for name,df in result.items():
     if " PWM (µs)" in df.columns:
         df[" PWM (µs)"] = (df[" PWM (µs)"] - 1500) / 4
+
         
 def ThrustPlots(column):
     
@@ -39,30 +39,33 @@ def ThrustPlots(column):
     plt.legend()
     plt.show()
 
-ThrustPlots(" Power (W)")
-ThrustPlots(" RPM")
-ThrustPlots(" Efficiency (g/W)")
-ThrustPlots(" Force (Kg f)")
+def plotter():
+    ThrustPlots(" Power (W)")
+    ThrustPlots(" RPM")
+    ThrustPlots(" Efficiency (g/W)")
+    ThrustPlots(" Force (Kg f)")
 
 
 regimes = pd.read_csv("Operating Modes.csv")
 
-current_drawn = np.zeros(6)
+def battery_Calcs():
+    current_drawn = np.zeros(6)
 
-for i in range(len(regimes.columns)):
-    thrusters = regimes["Thrusters In Use"][i]
-    percentage = regimes["Thrust Percentage"][i]
-    time = regimes["Time used (h)"][i]
-    j = 0
-    for name,df in result.items():
-        current = df[" Current (A)"][percentage+100]
-        current_drawn[j] += current * thrusters * time
-        j += 1
+    for i in range(len(regimes.columns)):
+      thrusters = regimes["Thrusters In Use"][i]
+        percentage = regimes["Thrust Percentage"][i]
+        time = regimes["Time used (h)"][i]
+        j = 0
+        for name,df in result.items():
+            current = df[" Current (A)"][percentage+100]
+            current_drawn[j] += current * thrusters * time
+            j += 1
         
-current_drawn /= .7
-V = 10
-for i in current_drawn:
-    print(f"The Amperage required for a {V} V battery is {i:.1f} Ah")
+    current_drawn /= .7
+    V = 10
+    for i in current_drawn:
+        print(f"The Amperage required for a {V} V battery is {i:.1f} Ah")
+        V += 2
 
 
 
