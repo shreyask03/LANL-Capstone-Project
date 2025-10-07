@@ -52,7 +52,7 @@ def battery_Calcs():
     current_drawn = np.zeros(6)
 
     for i in range(len(regimes.columns)):
-      thrusters = regimes["Thrusters In Use"][i]
+        thrusters = regimes["Thrusters In Use"][i]
         percentage = regimes["Thrust Percentage"][i]
         time = regimes["Time used (h)"][i]
         j = 0
