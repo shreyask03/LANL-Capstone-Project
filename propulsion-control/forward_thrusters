@@ -1,0 +1,129 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+# geometry
+L, W, H = 0.3, 0.2, 0.15
+c = 1 / np.sqrt(3)
+
+thrusters = np.array([
+    [ L,  W,  H,  c,  c,  c],
+    [ L,  W, -H,  c,  c, -c],
+    [ L, -W,  H,  c, -c,  c],
+    [ L, -W, -H,  c, -c, -c],
+    [-L,  W,  H, -c,  c,  c],
+    [-L,  W, -H, -c,  c, -c],
+    [-L, -W,  H, -c, -c,  c],
+    [-L, -W, -H, -c, -c, -c],
+])
+
+# B Matrix
+B = np.zeros((6, 8))
+for i in range(8):
+    x, y, z, tx, ty, tz = thrusters[i]
+    B[:, i] = [tx, ty, tz,
+               y*tz - z*ty,  # roll
+               z*tx - x*tz,  # pitch
+               x*ty - y*tx]  # yaw
+
+# DOFs
+targets = {
+    "Surge (+X)": np.array([1, 0, 0, 0, 0, 0]),
+    "Sway (+Y)" : np.array([0, 1, 0, 0, 0, 0]),
+    "Heave (+Z)": np.array([0, 0, 1, 0, 0, 0]),
+    "Roll"      : np.array([0, 0, 0, 1, 0, 0]),
+    "Pitch"     : np.array([0, 0, 0, 0, 1, 0]),
+    "Yaw"       : np.array([0, 0, 0, 0, 0, 1]),
+}
+
+# solver
+def forward_only_solve(B, tau_des, iters=6):
+    f = np.zeros(8)
+    residual = tau_des.copy()
+    for _ in range(iters):
+        delta, _, _, _ = np.linalg.lstsq(B, residual, rcond=None)
+        f += delta
+        f = np.maximum(f, 0)
+        residual = tau_des - B @ f
+    return f, B @ f
+
+# DOF solutions
+results = {}
+for name, tau_des in targets.items():
+    f, tau_actual = forward_only_solve(B, tau_des)
+    f /= np.max(f) if np.max(f) > 0 else 1  # normalize
+    results[name] = (f, tau_actual)
+
+# summary
+for name, (f, tau_actual) in results.items():
+    print(f"\n=== {name} ===")
+    print("Thruster RPMs:", np.round(f,3))
+    print("Fx,Fy,Fz = ", np.round(tau_actual[:3],3))
+    print("τx,τy,τz = ", np.round(tau_actual[3:],3))
+    print("Residual error:", np.linalg.norm(tau_actual - targets[name]))
+
+# plot bar charts
+fig, axs = plt.subplots(2, 3, figsize=(14,6))
+axs = axs.flatten()
+
+for i, (name, (f, _)) in enumerate(results.items()):
+    ax = axs[i]
+    thruster_ids = np.arange(1, 9)
+    ax.bar(thruster_ids, f, color='royalblue', width=0.6)
+    ax.set_title(name)
+    ax.set_xlabel("Thruster #")
+    ax.set_ylabel("Scaled RPM")
+    ax.set_ylim(0, 1.05)
+    ax.set_xticks(thruster_ids)           # ✅ force labels 1–8
+    ax.set_xticklabels([str(k) for k in thruster_ids])
+    ax.grid(True, linestyle='--', alpha=0.5)
+
+plt.suptitle("Forward-Only Thrust Allocations (Scaled 0–1)", fontsize=14)
+plt.tight_layout()
+plt.show()
+
+# plot graphs
+fig = plt.figure(figsize=(14,10))
+names = list(results.keys())
+
+for i, name in enumerate(names):
+    ax = fig.add_subplot(2, 3, i+1, projection='3d')
+    f, _ = results[name]
+    ax.set_title(name, fontsize=10)
+    ax.set_xlim([-0.4, 0.4])
+    ax.set_ylim([-0.4, 0.4])
+    ax.set_zlim([-0.4, 0.4])
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    ax.view_init(elev=20, azim=35)
+
+    # draw ROV box
+    corners = np.array([
+        [ L,  W,  H], [ L, -W,  H], [-L, -W,  H], [-L,  W,  H],
+        [ L,  W, -H], [ L, -W, -H], [-L, -W, -H], [-L,  W, -H]
+    ])
+    faces = [
+        [corners[0], corners[1], corners[2], corners[3]],
+        [corners[4], corners[5], corners[6], corners[7]],
+        [corners[0], corners[1], corners[5], corners[4]],
+        [corners[2], corners[3], corners[7], corners[6]],
+        [corners[1], corners[2], corners[6], corners[5]],
+        [corners[0], corners[3], corners[7], corners[4]]
+    ]
+    ax.add_collection3d(Poly3DCollection(faces, alpha=0.1,
+                                         facecolor='gray', edgecolor='black'))
+
+    # draw thrusters + arrows
+    for j in range(8):
+        x, y, z, tx, ty, tz = thrusters[j]
+        length = 0.15 * f[j]
+        ax.scatter(x, y, z, color='black', s=20)
+        ax.text(x+0.02, y+0.02, z+0.02, f"T{j+1}", fontsize=7)
+        if f[j] > 1e-3:
+            ax.quiver(x, y, z, tx, ty, tz,
+                      length=length, color='blue', normalize=True)
+
+plt.suptitle("3D ROV Thruster Configurations — Forward Only (Blue Arrows)", fontsize=14)
+plt.tight_layout()
+plt.show()    
