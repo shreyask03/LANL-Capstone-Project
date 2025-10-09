@@ -82,14 +82,21 @@ plt.suptitle("Forward-Only Thrust Allocations (Scaled 0–1)", fontsize=14)
 plt.tight_layout()
 plt.show()
 
-# plot graphs
+# 3D plot w/ thruster direction + moment vectors
 fig = plt.figure(figsize=(14,10))
 names = list(results.keys())
+
+# Define spin directions (front view)
+# CCW = +1, CW = -1
+# Front 4 thrusters (1–4): [CCW, CW, CW, CCW]
+# Rear 4 thrusters (5–8):  mirrored
+spin_dirs = np.array([+1, -1, -1, +1,
+                      -1, +1, +1, -1])
 
 for i, name in enumerate(names):
     ax = fig.add_subplot(2, 3, i+1, projection='3d')
     f, _ = results[name]
-    ax.set_title(name, fontsize=10)
+    ax.set_title(name)
     ax.set_xlim([-0.4, 0.4])
     ax.set_ylim([-0.4, 0.4])
     ax.set_zlim([-0.4, 0.4])
@@ -98,7 +105,7 @@ for i, name in enumerate(names):
     ax.set_zlabel('Z')
     ax.view_init(elev=20, azim=35)
 
-    # draw ROV box
+    # UUV Box
     corners = np.array([
         [ L,  W,  H], [ L, -W,  H], [-L, -W,  H], [-L,  W,  H],
         [ L,  W, -H], [ L, -W, -H], [-L, -W, -H], [-L,  W, -H]
@@ -114,16 +121,43 @@ for i, name in enumerate(names):
     ax.add_collection3d(Poly3DCollection(faces, alpha=0.1,
                                          facecolor='gray', edgecolor='black'))
 
-    # draw thrusters + arrows
+    total_spin = np.zeros(3)
     for j in range(8):
         x, y, z, tx, ty, tz = thrusters[j]
-        length = 0.15 * f[j]
+        thrust_dir = np.array([tx, ty, tz])
+        spin_torque = spin_dirs[j] * f[j] * thrust_dir
+        total_spin += spin_torque
+
+        # Draw thrust vector (blue)
+        if f[j] > 1e-3:
+            ax.quiver(x, y, z,
+                      tx, ty, tz,
+                      length=0.15 * f[j],
+                      color='blue', normalize=True)
+
+            # Draw spin torque vector (red)
+            ax.quiver(x, y, z,
+                      spin_torque[0], spin_torque[1], spin_torque[2],
+                      length=0.15 * f[j],
+                      color='red', normalize=True)
+
+        # Label each thruster
         ax.scatter(x, y, z, color='black', s=20)
         ax.text(x+0.02, y+0.02, z+0.02, f"T{j+1}", fontsize=7)
-        if f[j] > 1e-3:
-            ax.quiver(x, y, z, tx, ty, tz,
-                      length=length, color='blue', normalize=True)
 
-plt.suptitle("3D ROV Thruster Configurations — Forward Only (Blue Arrows)", fontsize=14)
-plt.tight_layout()
-plt.show()    
+    print(f"{name}: total spin torque ≈ {np.round(total_spin,3)}")
+
+from matplotlib.lines import Line2D
+
+legend_elements = [
+    Line2D([0], [0], color='blue', lw=2, label='Thrust Vector'),
+    Line2D([0], [0], color='red', lw=2, label='Spin Reaction Torque'),
+    Line2D([0], [0], marker='o', color='w', markerfacecolor='black', markersize=6, label='Thruster Position')
+]
+
+fig.legend(handles=legend_elements, loc='upper right', fontsize=9)
+plt.suptitle("3D Thruster Directions & Moment Vectors", fontsize=15, y=0.985)
+plt.tight_layout(rect=[0, 0, 1, 0.96])
+plt.subplots_adjust(hspace=0.3)  # <-- add vertical spacing between rows
+plt.show()
+
