@@ -46,9 +46,10 @@ def plotter():
     ThrustPlots(" Force (Kg f)")
 
 
-regimes = pd.read_csv("Operating Modes.csv")
 
 def battery_Calcs():
+    regimes = pd.read_csv("Operating Modes.csv")
+
     current_drawn = np.zeros(6)
 
     for i in range(len(regimes.columns)):
@@ -68,6 +69,31 @@ def battery_Calcs():
         V += 2
 
 
+V_test = np.linspace(0,1,100)
+
+def Power_Required(V,density,S,Cd):
+    D = .5 * density * V ** 2 * Cd * S
+    P_req = D * V
+    return P_req
+
+def Power_Available(T,V):
+    return T * V
+
+for name,df in result.items():
+    p_Available = np.zeros_like(V_test)
+    if " PWM (µs)" in df.columns:
+        volt = df[" Voltage (V)"].iloc[-1]
+        plt.plot(V_test, Power_Available(df[" Force (Kg f)"].iloc[-1],V_test),label = f"P_A ({volt} V)")
+
+
+P_req = Power_Required(V_test,997,.75,0.03)
+
+plt.plot(V_test, P_req,label = "P_R")
+plt.xlabel("Velocity (m/s)")
+plt.ylabel("Power (W)")
+plt.title("Power Curves")
+plt.legend()
+plt.show()
 
 
 
