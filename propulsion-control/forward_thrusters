@@ -128,20 +128,14 @@ for i, name in enumerate(names):
         spin_torque = spin_dirs[j] * f[j] * thrust_dir
         total_spin += spin_torque
 
-        # Draw thrust vector (blue)
         if f[j] > 1e-3:
-            ax.quiver(x, y, z,
-                      tx, ty, tz,
-                      length=0.15 * f[j],
-                      color='blue', normalize=True)
+            offset = 0.02
+            ax.quiver(x + tx*offset, y + ty*offset, z + tz*offset,
+                    spin_torque[0], spin_torque[1], spin_torque[2],
+                    length=0.15 * f[j], color='red', normalize=True, lw=1.5)
+            ax.quiver(x, y, z, tx, ty, tz,
+                    length=0.15 * f[j], color='blue', normalize=True, lw=1.5)
 
-            # Draw spin torque vector (red)
-            ax.quiver(x, y, z,
-                      spin_torque[0], spin_torque[1], spin_torque[2],
-                      length=0.15 * f[j],
-                      color='red', normalize=True)
-
-        # Label each thruster
         ax.scatter(x, y, z, color='black', s=20)
         ax.text(x+0.02, y+0.02, z+0.02, f"T{j+1}", fontsize=7)
 
