@@ -1,6 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from config_validation import get_config
+
+config = get_config()
 
 # geometry
 L, W, H = 0.3, 0.2, 0.15
