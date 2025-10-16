@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import pandas as pd
 
 # geometry
 L, W, H = 0.3, 0.2, 0.15
@@ -17,14 +18,26 @@ thrusters = np.array([
     [-L, -W, -H, -c, -c, -c],
 ])
 
+# # B Matrix
+# B = np.zeros((6, 8))
+# for i in range(8):
+#     x, y, z, tx, ty, tz = thrusters[i]
+#     # moment arms must use geometry directly
+#     B[:, i] = [tx, ty, tz,
+#                (y * tz - z * ty),   # roll moment (about X)
+#                (z * tx - x * tz),   # pitch moment (about Y)
+#                (x * ty - y * tx)]   # yaw moment (about Z)
+
 # B Matrix
 B = np.zeros((6, 8))
 for i in range(8):
     x, y, z, tx, ty, tz = thrusters[i]
-    B[:, i] = [tx, ty, tz,
-               y*tz - z*ty,  # roll
-               z*tx - x*tz,  # pitch
-               x*ty - y*tx]  # yaw
+    # apply geometry scaling directly — use actual lever arms, not normalized symmetry
+    roll_moment  = (y * tz - z * ty) / W   # normalize by W so it scales with geometry
+    pitch_moment = (z * tx - x * tz) / L   # normalize by L
+    yaw_moment   = (x * ty - y * tx) / H   # normalize by H
+    B[:, i] = [tx, ty, tz, roll_moment, pitch_moment, yaw_moment]
+
 
 # DOFs
 targets = {
@@ -62,25 +75,25 @@ for name, (f, tau_actual) in results.items():
     print("τx,τy,τz = ", np.round(tau_actual[3:],3))
     print("Residual error:", np.linalg.norm(tau_actual - targets[name]))
 
-# plot bar charts
-fig, axs = plt.subplots(2, 3, figsize=(14,6))
-axs = axs.flatten()
+# # plot bar charts
+# fig, axs = plt.subplots(2, 3, figsize=(14,6))
+# axs = axs.flatten()
 
-for i, (name, (f, _)) in enumerate(results.items()):
-    ax = axs[i]
-    thruster_ids = np.arange(1, 9)
-    ax.bar(thruster_ids, f, color='royalblue', width=0.6)
-    ax.set_title(name)
-    ax.set_xlabel("Thruster #")
-    ax.set_ylabel("Scaled RPM")
-    ax.set_ylim(0, 1.05)
-    ax.set_xticks(thruster_ids)           # ✅ force labels 1–8
-    ax.set_xticklabels([str(k) for k in thruster_ids])
-    ax.grid(True, linestyle='--', alpha=0.5)
+# for i, (name, (f, _)) in enumerate(results.items()):
+#     ax = axs[i]
+#     thruster_ids = np.arange(1, 9)
+#     ax.bar(thruster_ids, f, color='royalblue', width=0.6)
+#     ax.set_title(name)
+#     ax.set_xlabel("Thruster #")
+#     ax.set_ylabel("Scaled RPM")
+#     ax.set_ylim(0, 1.05)
+#     ax.set_xticks(thruster_ids)           # ✅ force labels 1–8
+#     ax.set_xticklabels([str(k) for k in thruster_ids])
+#     ax.grid(True, linestyle='--', alpha=0.5)
 
-plt.suptitle("Forward-Only Thrust Allocations (Scaled 0–1)", fontsize=14)
-plt.tight_layout()
-plt.show()
+# plt.suptitle("Forward-Only Thrust Allocations (Scaled 0–1)", fontsize=14)
+# plt.tight_layout()
+# plt.show()
 
 # 3D plot w/ thruster direction + moment vectors
 fig = plt.figure(figsize=(14,10))
@@ -141,6 +154,30 @@ for i, name in enumerate(names):
 
     print(f"{name}: total spin torque ≈ {np.round(total_spin,3)}")
 
+
+
+# force tested (10 N)
+scale = 10.0
+results_scaled = {}
+
+for name, tau_des in targets.items():
+    tau_des_10 = tau_des * scale
+    f, tau_actual = forward_only_solve(B, tau_des_10)
+    f /= np.max(f) if np.max(f) > 0 else 1
+    results_scaled[name] = (f, tau_actual)
+
+# collect Fx,Fy,Fz,Mx,My,Mz for each DOF
+data = []
+for name, (_, tau_actual) in results_scaled.items():
+    Fx, Fy, Fz, Mx, My, Mz = np.round(tau_actual, 3)
+    data.append([name, Fx, Fy, Fz, Mx, My, Mz])
+
+df = pd.DataFrame(data, columns=["Case", "Fx [N]", "Fy [N]", "Fz [N]", "Mx [N·m]", "My [N·m]", "Mz [N·m]"])
+print("\n=== Resulting Force & Moment Table (Target = 10 N or 10 N·m) ===\n")
+print(df.to_string(index=False))
+
+
+
 from matplotlib.lines import Line2D
 
 legend_elements = [
@@ -154,4 +191,3 @@ plt.suptitle("3D Thruster Directions & Moment Vectors", fontsize=15, y=0.985)
 plt.tight_layout(rect=[0, 0, 1, 0.96])
 plt.subplots_adjust(hspace=0.3)  # <-- add vertical spacing between rows
 plt.show()
-
