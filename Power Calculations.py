@@ -69,7 +69,7 @@ def battery_Calcs():
         V += 2
 
 
-V_test = np.linspace(0,1,100)
+V_test = np.linspace(0,3,100)
 
 def Power_Required(V,density,S,Cd):
     D = .5 * density * V ** 2 * Cd * S
@@ -77,13 +77,13 @@ def Power_Required(V,density,S,Cd):
     return P_req
 
 def Power_Available(T,V):
-    return T * V
+    return 2*T * V
 
 for name,df in result.items():
     p_Available = np.zeros_like(V_test)
     if " PWM (µs)" in df.columns:
         volt = df[" Voltage (V)"].iloc[-1]
-        plt.plot(V_test, Power_Available(df[" Force (Kg f)"].iloc[-1],V_test),label = f"P_A ({volt} V)")
+        plt.plot(V_test, Power_Available((df[" Force (Kg f)"].iloc[-1])*9.81,V_test),label = f"P_A ({volt} V)")
 
 
 P_req = Power_Required(V_test,997,.75,0.03)
