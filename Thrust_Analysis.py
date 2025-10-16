@@ -3,27 +3,27 @@ import math
 def compute_max_velocities(length, width, height, mass, thrust_per_motor,
                            Cd_forward, Cd_lateral, Cd_vertical,
                            vertical_cant_deg, outward_cant_deg,
-                           rho=1025.0, motors_per_direction=4):
-    # angles in radians
+                           rho=1025.0,):
+    # convert to rads
     v_ang = math.radians(vertical_cant_deg)
     o_ang = math.radians(outward_cant_deg)
     
-    # thrust components for one motor
+    # Singular motor thrust by cant
     forward_comp = thrust_per_motor * math.cos(v_ang) * math.cos(o_ang)
     lateral_comp = thrust_per_motor * math.cos(v_ang) * math.sin(o_ang)
     vertical_comp = thrust_per_motor * math.sin(v_ang)
     
     # total force for each direction using 4 motors
-    total_forward = motors_per_direction * forward_comp
-    total_lateral = motors_per_direction * lateral_comp
-    total_vertical = motors_per_direction * vertical_comp
+    total_forward = 4 * forward_comp
+    total_lateral = 4 * lateral_comp
+    total_vertical = 4 * vertical_comp
     
-    # projected areas
+    # Area in each direction
     A_forward = height * width
     A_lateral = height * length
     A_vertical = length * width
     
-    # helper to compute max speed
+    # Calculate maximum speed
     def max_speed_from_force(F, A, Cd):
         if F <= 0:
             return 0.0
@@ -46,7 +46,7 @@ def compute_max_velocities(length, width, height, mass, thrust_per_motor,
         }
     }
 
-if __name__ == "__main__":
+while True:
     print("=== 4-Motor Submarine Calculator ===")
     length = float(input("Enter submarine length (m): "))
     width = float(input("Enter submarine width (m): "))
