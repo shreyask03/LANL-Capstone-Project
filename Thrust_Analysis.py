@@ -1,6 +1,6 @@
 import math
 
-def compute_max_velocities(length, width, height, mass, thrust_per_motor,
+def compute_max_velocities(length, width, height, thrust_per_motor,
                            Cd_forward, Cd_lateral, Cd_vertical,
                            vertical_cant_deg, outward_cant_deg,
                            rho=1025.0,):
@@ -51,7 +51,6 @@ while True:
     length = float(input("Enter submarine length (m): "))
     width = float(input("Enter submarine width (m): "))
     height = float(input("Enter submarine height (m): "))
-    mass = float(input("Enter submarine mass (kg): "))
     thrust = float(input("Enter thrust per motor (N): "))
     Cd_forward = float(input("Enter drag coefficient (forward): "))
     Cd_lateral = float(input("Enter drag coefficient (lateral): "))
