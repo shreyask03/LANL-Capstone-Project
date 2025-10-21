@@ -22,9 +22,6 @@ if __name__ == "__main__":
 
         df = df.drop(df.index[0:100])
         result[name] = df
-
-for name,df in result.items():
-    if " PWM (µs)" in df.columns:
         df[" PWM (µs)"] = (df[" PWM (µs)"] - 1500) / 4
 
         
