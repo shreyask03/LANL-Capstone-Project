@@ -1,6 +1,32 @@
 import math
+import pandas as pd
+import matplotlib.pyplot as plt
+import glob
+import os
+import numpy as np
 
-# add throttle 
+# File reading from Power Calculations.py
+def load_csv_files(folder_path):
+
+    # Find all CSV files in the folder
+    csv_files = glob.glob(os.path.join(folder_path, "*.csv"))
+
+    # Store each DataFrame in a dictionary with filename as key
+    dataframes = {os.path.basename(file): pd.read_csv(file,encoding = "unicode_escape") for file in csv_files}
+    return dataframes
+
+
+if __name__ == "__main__":
+    folder = "Thruster Data"
+    result = load_csv_files(folder)
+    
+    for name, df in result.items():
+
+        df = df.drop(df.index[0:100])
+        result[name] = df
+        df[" PWM (µs)"] = (df[" PWM (µs)"] - 1500) / 4
+
+
 def compute_max_velocities(length, width, height, thrust_per_motor,
                            Cd_forward, Cd_lateral, Cd_vertical,
                            vertical_cant_deg, outward_cant_deg,
@@ -52,17 +78,20 @@ while True:
     length = float(input("Enter submarine length (m): "))
     width = float(input("Enter submarine width (m): "))
     height = float(input("Enter submarine height (m): "))
-    thrust = float(input("Enter thrust per motor (Kg f): "))
+    throttle = int(input("Enter throttle percentage: "))
     Cd_forward = float(input("Enter drag coefficient (forward): "))
     Cd_lateral = float(input("Enter drag coefficient (lateral): "))
     Cd_vertical = float(input("Enter drag coefficient (vertical): "))
     vertical_cant = float(input("Enter vertical cant angle (deg): "))
     outward_cant = float(input("Enter outward cant angle (deg): "))
     
+    thrust = result["Thrust Data 14 V.csv"][" Force (Kg f)"][(100+throttle)]
+
     results = compute_max_velocities(length, width, height, thrust,
                                      Cd_forward, Cd_lateral, Cd_vertical,
                                      vertical_cant, outward_cant)
     
+
     print("\nThrusts:")
     print(f"Forward thrust (N): {results['forces_N']['forward']:.2f}")
     print(f"Lateral thrust (N): {results['forces_N']['lateral']:.2f}")
