@@ -91,13 +91,20 @@ while True:
                                      Cd_forward, Cd_lateral, Cd_vertical,
                                      vertical_cant, outward_cant)
     
+    pitch_angles = np.arange(0,91,5)
+    bank_angles = np.arange(0,91,5)
 
-    print("\nThrusts:")
-    print(f"Forward thrust (N): {results['forces_N']['forward']:.2f}")
-    print(f"Lateral thrust (N): {results['forces_N']['lateral']:.2f}")
-    print(f"Vertical thrust (N): {results['forces_N']['vertical']:.2f}")
-    print("\nVelocities:")
-    print(f"Forward (m/s): {results['max_speeds_m_per_s']['forward']:.2f}")
-    print(f"Lateral (m/s): {results['max_speeds_m_per_s']['lateral']:.2f}")
-    print(f"Vertical (m/s): {results['max_speeds_m_per_s']['vertical']:.2f}")
-    print()
+    angle_thrusts = pd.DataFrame(0, index = pitch_angles, columns = bank_angles, dtype = object)
+
+    for i in pitch_angles:
+        for j in bank_angles:
+            angle_thrusts.at[i, j] = [
+                        float(results['forces_N']['forward']),
+                        float(results['forces_N']['lateral']),
+                        float(results['forces_N']['vertical']),
+                        float(results['max_speeds_m_per_s']['forward']),
+                        float(results['max_speeds_m_per_s']['lateral']),
+                        float(results['max_speeds_m_per_s']['vertical'])
+                    ]    
+    print(angle_thrusts)
+
