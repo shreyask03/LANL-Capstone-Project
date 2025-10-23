@@ -82,29 +82,25 @@ while True:
     Cd_forward = float(input("Enter drag coefficient (forward): "))
     Cd_lateral = float(input("Enter drag coefficient (lateral): "))
     Cd_vertical = float(input("Enter drag coefficient (vertical): "))
-    vertical_cant = float(input("Enter vertical cant angle (deg): "))
-    outward_cant = float(input("Enter outward cant angle (deg): "))
     
     thrust = result["Thrust Data 14 V.csv"][" Force (Kg f)"][(100+throttle)]
 
-    results = compute_max_velocities(length, width, height, thrust,
-                                     Cd_forward, Cd_lateral, Cd_vertical,
-                                     vertical_cant, outward_cant)
     
-    pitch_angles = np.arange(0,91,5)
-    bank_angles = np.arange(0,91,5)
+    pitch_angles = np.arange(0,91,1)
+    bank_angles = np.arange(0,91,1)
 
     angle_thrusts = pd.DataFrame(0, index = pitch_angles, columns = bank_angles, dtype = object)
 
     for i in pitch_angles:
         for j in bank_angles:
+            results = compute_max_velocities(length, width, height, thrust,
+                                     Cd_forward, Cd_lateral, Cd_vertical,
+                                     i, j)
             angle_thrusts.at[i, j] = [
-                        float(results['forces_N']['forward']),
-                        float(results['forces_N']['lateral']),
-                        float(results['forces_N']['vertical']),
-                        float(results['max_speeds_m_per_s']['forward']),
-                        float(results['max_speeds_m_per_s']['lateral']),
-                        float(results['max_speeds_m_per_s']['vertical'])
+                        round(float(results['forces_N']['forward']),3),
+                        round(float(results['forces_N']['lateral']),3),
+                        round(float(results['forces_N']['vertical']),3),
+                        round(float(results['max_speeds_m_per_s']['forward']),3),
+                        round(float(results['max_speeds_m_per_s']['lateral']),3),
+                        round(float(results['max_speeds_m_per_s']['vertical']),3)
                     ]    
-    print(angle_thrusts)
-
