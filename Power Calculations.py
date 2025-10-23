@@ -66,7 +66,7 @@ def battery_Calcs():
         V += 2
 
 
-V_test = np.linspace(0,3,100)
+V_test = np.linspace(0,7,100)
 
 def Power_Required(V,density,S,Cd):
     D = .5 * density * V ** 2 * Cd * S
@@ -83,7 +83,7 @@ for name,df in result.items():
         plt.plot(V_test, Power_Available((df[" Force (Kg f)"].iloc[-1])*9.81,V_test),label = f"P_A ({volt} V)")
 
 
-P_req = Power_Required(V_test,997,.75,0.03)
+P_req = Power_Required(V_test,997,.125,0.08)
 
 plt.plot(V_test, P_req,label = "P_R")
 plt.xlabel("Velocity (m/s)")

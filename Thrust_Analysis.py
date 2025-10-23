@@ -26,11 +26,14 @@ if __name__ == "__main__":
         result[name] = df
         df[" PWM (µs)"] = (df[" PWM (µs)"] - 1500) / 4
 
+regimes = pd.read_csv("Operating Modes.csv")
+
+
 
 def compute_max_velocities(length, width, height, thrust_per_motor,
                            Cd_forward, Cd_lateral, Cd_vertical,
                            vertical_cant_deg, outward_cant_deg,
-                           rho=1025.0):
+                           rho=997.0):
     # convert to rads
     v_ang = math.radians(vertical_cant_deg)
     o_ang = math.radians(outward_cant_deg)
@@ -75,13 +78,19 @@ def compute_max_velocities(length, width, height, thrust_per_motor,
 
 while True:
     print("Inputs:")
-    length = float(input("Enter submarine length (m): "))
-    width = float(input("Enter submarine width (m): "))
-    height = float(input("Enter submarine height (m): "))
+    #length = float(input("Enter submarine length (m): "))
+    #width = float(input("Enter submarine width (m): "))
+    #height = float(input("Enter submarine height (m): "))
+    length = .75
+    width = .5
+    height = .25
     throttle = int(input("Enter throttle percentage: "))
-    Cd_forward = float(input("Enter drag coefficient (forward): "))
-    Cd_lateral = float(input("Enter drag coefficient (lateral): "))
-    Cd_vertical = float(input("Enter drag coefficient (vertical): "))
+    #Cd_forward = float(input("Enter drag coefficient (forward): "))
+    #Cd_lateral = float(input("Enter drag coefficient (lateral): "))
+    #Cd_vertical = float(input("Enter drag coefficient (vertical): "))
+    Cd_forward = .08
+    Cd_lateral = .095
+    Cd_vertical = .115
     
     thrust = result["Thrust Data 14 V.csv"][" Force (Kg f)"][(100+throttle)]
 
@@ -103,4 +112,14 @@ while True:
                         round(float(results['max_speeds_m_per_s']['forward']),3),
                         round(float(results['max_speeds_m_per_s']['lateral']),3),
                         round(float(results['max_speeds_m_per_s']['vertical']),3)
-                    ]    
+                    ]   
+ 
+    distances = np.array([100,45])
+    total_distance = np.linalg.norm(distances) / 0.4
+    travel_time = total_distance / (3.281 * angle_thrusts[45][45][3] * .8 * 3600)
+
+    current = result["Thrust Data 14 V.csv"][" Current (A)"][throttle + 100]
+
+    current_drawn = travel_time * current * 4 / .7
+    
+    print(f"The Amperage required for this travel distance is {current_drawn:.5f} Ah")
