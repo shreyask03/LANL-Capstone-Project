@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Oct 22 15:20:30 2025
-
-@author: eligriffin
-"""
-
 import visual_kinematics.RobotSerial as RS
 import visual_kinematics as vk
 import numpy as np
