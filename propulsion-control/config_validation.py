@@ -159,14 +159,14 @@ def polar_pos(r,theta,z):
 def get_config():
   return Configuration(
     motors = [
-      Motor(np.array([0.3,0.2,0.15]), theta = 315, phi = 45), # top front right
-      Motor(np.array([0.3,0.2,-0.15]), theta = 315, phi = -45 ), # bottom front right
-      Motor(np.array([0.3,-0.2,0.15]), theta = 45, phi = 45), # top front left
-      Motor(np.array([0.3,-0.2,-0.15]), theta = 45, phi = -45), # bottom front left
-      Motor(np.array([-0.3,0.2,0.15]), theta = 225, phi = 45), # top back right
-      Motor(np.array([-0.3,0.2,-0.15]), theta = 225, phi = -45 ), # bottom back right 
-      Motor(np.array([-0.3,-0.2,0.15]), theta = 135, phi = 45), # top back left
-      Motor(np.array([-0.3,-0.2,-0.15]), theta = 135, phi = -45) # bottom back left
+      Motor(np.array([0.362,0.2075,0.1015]), theta = 315, phi = 45), # top front right
+      Motor(np.array([0.362,-0.2075,0.1015]), theta = 45, phi = 45), # top front left
+      Motor(np.array([0.362,0.2075,-0.1015]), theta = 315, phi = -45 ), # bottom front right
+      Motor(np.array([0.362,-0.2075,-0.1015]), theta = 45, phi = -45), # bottom front left
+      Motor(np.array([-0.362,0.2075,0.1015]), theta = 225, phi = 45), # top back right
+      Motor(np.array([-0.362,-0.2075,0.1015]), theta = 135, phi = 45), # top back left
+      Motor(np.array([-0.362,0.2075,-0.1015]), theta = 225, phi = -45 ), # bottom back right 
+      Motor(np.array([-0.362,-0.2075,-0.1015]), theta = 135, phi = -45) # bottom back left
     ]
   )
 

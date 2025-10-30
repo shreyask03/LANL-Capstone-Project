@@ -66,7 +66,7 @@ rho = 1025.0
 D = 0.076
 K_T = 0.12
 K_Q = 0.017
-RPM_max = 3800
+RPM_max = 3250
 n_max = RPM_max / 60
 
 # === Thrust and spin torque magnitudes per thruster ===
