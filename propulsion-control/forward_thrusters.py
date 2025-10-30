@@ -1,25 +1,54 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import pandas as pd
 from config_validation import get_config
 
 config = get_config()
 
-# geometry
-L, W, H = 0.3, 0.2, 0.15
-c = 1 / np.sqrt(3)
+print(f"The current craft dimensions are: {config.get_uuv_dims()}")
+print(f"The current positions and orientations of the thrusters are as follows:")
+for i in range(len(config.motors)):
+    print(f"Thruster {i}:\n position: {config.get_pos(i)}\n orientation: {config.get_orient(i)}\n")
 
-thrusters = np.array([
-    [ L,  W,  H,  c,  c,  c],
-    [ L,  W, -H,  c,  c, -c],
-    [ L, -W,  H,  c, -c,  c],
-    [ L, -W, -H,  c, -c, -c],
-    [-L,  W,  H, -c,  c,  c],
-    [-L,  W, -H, -c,  c, -c],
-    [-L, -W,  H, -c, -c,  c],
-    [-L, -W, -H, -c, -c, -c],
-])
+config_ok = input("Would you like to keep the current configuration? (enter 'y' or 'n'): ")
+
+# set position and orientation of thrusters if requested
+if config_ok != "y":
+    config.set_uuv_dims()
+
+    for i in range(len(config.motors)):
+        config.set_orient(i)
+    
+# create thruster matrix of positions and orients.  
+
+thrusters = []
+for i in range(len(config.motors)):
+    pos = config.get_pos(i)
+    thrust_vect = config.get_orient(i)
+    # print(f"thrust vector: {thrust_vect}, dims: {np.ndim(thrust_vect)}")
+    thruster = np.concatenate([pos,thrust_vect])
+    thrusters.append(thruster)
+
+thrusters = np.vstack(thrusters)
+# print(thrusters)
+
+# geometry
+L,W,H = config.uuv_dims
+# L, W, H = 0.3, 0.2, 0.15
+# c = 1 / np.sqrt(3)
+
+# thrusters = np.array([
+#     [ L,  W,  H,  c,  c,  c],
+#     [ L,  W, -H,  c,  c, -c],
+#     [ L, -W,  H,  c, -c,  c],
+#     [ L, -W, -H,  c, -c, -c],
+#     [-L,  W,  H, -c,  c,  c],
+#     [-L,  W, -H, -c,  c, -c],
+#     [-L, -W,  H, -c, -c,  c],
+#     [-L, -W, -H, -c, -c, -c],
+# ])
 
 # # B Matrix
 # B = np.zeros((6, 8))
@@ -32,15 +61,22 @@ thrusters = np.array([
 #                (x * ty - y * tx)]   # yaw moment (about Z)
 
 # B Matrix
-B = np.zeros((6, 8))
-for i in range(8):
-    x, y, z, tx, ty, tz = thrusters[i]
-    # apply geometry scaling directly — use actual lever arms, not normalized symmetry
-    roll_moment  = (y * tz - z * ty) / W   # normalize by W so it scales with geometry
-    pitch_moment = (z * tx - x * tz) / L   # normalize by L
-    yaw_moment   = (x * ty - y * tx) / H   # normalize by H
-    B[:, i] = [tx, ty, tz, roll_moment, pitch_moment, yaw_moment]
+B = np.zeros((6, len(thrusters)))
+for i in range(len(thrusters)):
+    pos = config.get_pos(i)
+    thrust = config.get_orient(i)
+    moment = np.cross(pos, thrust)
+    B[:, i] = np.hstack((thrust, moment))
 
+# for i in range(len(thrusters)):
+    # x, y, z, tx, ty, tz = thrusters[i]
+
+    # apply geometry scaling directly — use actual lever arms, not normalized symmetry
+    # roll_moment  = (y * tz - z * ty) / W   # normalize by W so it scales with geometry
+    # pitch_moment = (z * tx - x * tz) / L   # normalize by L
+    # yaw_moment   = (x * ty - y * tx) / H   # normalize by H
+    # B[:, i] = [tx, ty, tz, roll_moment, pitch_moment, yaw_moment]
+# print(B)
 
 # DOFs
 targets = {
@@ -103,23 +139,27 @@ fig = plt.figure(figsize=(14,10))
 names = list(results.keys())
 
 # Define spin directions (front view)
-# CCW = +1, CW = -1
+# CCW = -1, CW = +1 by right hand rule along +X direction
 # Front 4 thrusters (1–4): [CCW, CW, CW, CCW]
 # Rear 4 thrusters (5–8):  mirrored
-spin_dirs = np.array([+1, -1, -1, +1,
-                      -1, +1, +1, -1])
+spin_dirs = np.array([-1, +1, +1, -1,
+                      +1, -1, -1, +1])
 
 for i, name in enumerate(names):
     ax = fig.add_subplot(2, 3, i+1, projection='3d')
     f, _ = results[name]
     ax.set_title(name)
-    ax.set_xlim([-0.4, 0.4])
-    ax.set_ylim([-0.4, 0.4])
-    ax.set_zlim([-0.4, 0.4])
+    ax.set_xlim([-L*1.5, L*1.5])
+    ax.set_ylim([-W*1.5, W*1.5])
+    ax.set_zlim([-H*1.5, H*1.5])
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
     ax.view_init(elev=20, azim=35)
+
+    # Flip Y and Z axes to match NED frame
+    ax.invert_yaxis()  # because +Y (sway) should go right, not left
+    ax.invert_zaxis()  # because +Z (heave) should go down, not up
 
     # UUV Box
     corners = np.array([
@@ -181,7 +221,7 @@ print(df.to_string(index=False))
 
 
 
-from matplotlib.lines import Line2D
+
 
 legend_elements = [
     Line2D([0], [0], color='blue', lw=2, label='Thrust Vector'),

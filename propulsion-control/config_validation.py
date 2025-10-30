@@ -44,12 +44,12 @@ def thruster_direction(theta, phi):
 
 class Motor:
   def __init__(self,pos: np.ndarray,theta=0,phi=0):
-    
     self.pos = pos
-    self.thrust_unit_vect = thruster_direction(theta,phi)
-
+    self.theta = theta
+    self.phi = phi
+    self.thrust_unit_vect = thruster_direction(np.deg2rad(theta),np.deg2rad(phi))
+    
     # T200 motor specs
-
     # thrust values at diff voltages (N)
     self.t_fwd_12v = 36.383
     self.t_fwd_16v = 51.485
@@ -72,24 +72,101 @@ class Motor:
 
 
 class Configuration:
-  def __init__(self,motors: list =[],):
+  def __init__(self,motors: list =[]):
     self.motors = motors
 
+    pos_all = np.array([m.pos for m in motors])
+    max_bounds = np.max(np.abs(pos_all), axis=0)
+    self.uuv_dims = max_bounds  # [L, W, H] half-dimensions
+    
+  
+  def get_pos(self, motor_id: int):
+    m = self.motors[motor_id]
+    return m.pos
+  
+  def get_orient(self, motor_id: int):
+    m = self.motors[motor_id]
+    return (m.thrust_unit_vect)
+  
+  def get_uuv_dims(self):
+    return self.uuv_dims
+
+  def set_uuv_dims(self):
+    l = float(input("Please enter the length of the UUV in meters: "))
+    w = float(input("Please enter the width of the UUV in meters: "))
+    h = float(input("Please enter the height of the UUV in meters: "))
+    self.uuv_dims = np.array([l,w,h])
+
+    # distances from center based on box dimensions
+    l_c = self.uuv_dims[0] / 2
+    w_c = self.uuv_dims[1] / 2
+    h_c = self.uuv_dims[2] / 2
+
+    for i in range(len(self.motors)):
+      if i == 0:
+        self.motors[i].pos = np.array([l_c, w_c, h_c])
+      elif i == 1:
+        self.motors[i].pos = np.array([l_c, w_c, -h_c])
+      elif i == 2:
+        self.motors[i].pos = np.array([l_c,-w_c,h_c])
+      elif i == 3:
+        self.motors[i].pos = np.array([l_c,-w_c,-h_c])
+      elif i == 4:
+        self.motors[i].pos = np.array([-l_c,w_c,h_c])
+      elif i == 5:
+        self.motors[i].pos = np.array([-l_c,w_c,-h_c])
+      elif i == 6:
+        self.motors[i].pos = np.array([-l_c,-w_c,h_c])
+      elif i == 7:
+        self.motors[i].pos = np.array([-l_c,-w_c,-h_c])
+
+    # if(not polar):
+    #   l = float(input("Please enter the longitudinal distance from center in meters: "))
+    #   w = float(input("Please enter the lateral distance from center in meters: "))
+    #   z = float(input("Please enter the vertical distance from center in meters: "))
+
+    #   m.pos = np.array([l,w,z])
+
+    # elif(polar):
+    #   r = float(input("Please enter the radial distance from center in meters: "))
+    #   theta = float(input("Please enter the angle from +x (from nose) in degrees: "))
+    #   z = float(input("Please enter the vertical distance from center in meters: "))
+
+    #   m.pos = polar_pos(r,theta,z)
+
+      
+  
+  def set_orient(self, motor_id: int):
+    m = self.motors[motor_id]
+    print(
+      "\nThese angles will be used to rotate a body-fixed frame about a stationary coordinate system where both share an origin at rotor center."
+      "\nThe thruster wil start off facing forward along the UUV's +x axis.\n"
+      "The UUV-fixed coordinate frame has an origin at its CG and is configured is as follows\n +X comes out front of UUV\n +Y comes out right side of UUV\n +Z comes out bottom of UUV\n"
+    )
+
+    theta = float(input(f"Please enter the desired angle of horizontal rotation from +x (forward) in degrees for thruster {motor_id}: "))
+    phi = float(input(f"Please enter the desired angle of vertical rotation in degrees for thruster {motor_id}: "))
+
+    
+    
+    m.thrust_unit_vect = thruster_direction(np.deg2rad(theta),np.deg2rad(phi))
+
+def polar_pos(r,theta,z):
+  angle = np.deg2rad(theta)
+  return np.array([r*np.cos(angle), r*np.sin(angle),z])
   
     
 def get_config():
   return Configuration(
     motors = [
-      # top
-      Motor(pos_on_rect(l=0.5,w=-0.5,z=0.5), theta = np.pi/4, phi = np.pi/4),
-      Motor(pos_on_rect(l=0.5,w=0.5,z=0.5), theta = 3*np.pi/4, phi = np.pi/4 ),
-      Motor(pos_on_rect(l=-0.5,w=0.5,z=0.5), theta = 7*np.pi/4, phi = np.pi/4),
-      Motor(pos_on_rect(l=-0.5,w=-0.5,z=0.5), theta = 5*np.pi/4, phi = np.pi/4),
-      # bottom
-      Motor(pos_on_rect(l=0.5,w=-0.5,z=-0.5), theta = np.pi/4, phi = -np.pi/4),
-      Motor(pos_on_rect(l=0.5,w=0.5,z=-0.5), theta = 3*np.pi/4, phi = -np.pi/4 ),
-      Motor(pos_on_rect(l=-0.5,w=0.5,z=-0.5), theta = 7*np.pi/4, phi = -np.pi/4),
-      Motor(pos_on_rect(l=-0.5,w=-0.5,z=-0.5), theta = 5*np.pi/4, phi = -np.pi/4)
+      Motor(np.array([0.3,0.2,0.15]), theta = 315, phi = 45), # top front right
+      Motor(np.array([0.3,0.2,-0.15]), theta = 315, phi = -45 ), # bottom front right
+      Motor(np.array([0.3,-0.2,0.15]), theta = 45, phi = 45), # top front left
+      Motor(np.array([0.3,-0.2,-0.15]), theta = 45, phi = -45), # bottom front left
+      Motor(np.array([-0.3,0.2,0.15]), theta = 225, phi = 45), # top back right
+      Motor(np.array([-0.3,0.2,-0.15]), theta = 225, phi = -45 ), # bottom back right 
+      Motor(np.array([-0.3,-0.2,0.15]), theta = 135, phi = 45), # top back left
+      Motor(np.array([-0.3,-0.2,-0.15]), theta = 135, phi = -45) # bottom back left
     ]
   )
 
