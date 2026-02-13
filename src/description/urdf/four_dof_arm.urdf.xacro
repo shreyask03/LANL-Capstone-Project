@@ -1,0 +1,173 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="four_dof_arm">
+  <!-- Robot geometry placeholders.
+       Swap mesh filenames to your exported SLDPRT->(dae/stl) paths. -->
+
+  <xacro:include filename="$(find arm_description)/urdf/ros2_control.xacro"/>
+
+  <xacro:arg name="controllers_file" default="$(find arm_config)/config/ros2_controllers.yaml"/>
+  <xacro:property name="mesh_dir" value="$(find arm_description)/meshes"/>
+  <xacro:property name="controllers_file_path" value="$(arg controllers_file)"/>
+
+  <!-- Basic link dimensions (scaled 10x) -->
+  <xacro:property name="link1_length" value="1.27"/>
+  <xacro:property name="link2_length" value="1.27"/>
+  <xacro:property name="link3_length" value="1.27"/>
+  <!-- Convert millimeter-based meshes to meters and scale 10x -->
+  <xacro:property name="mesh_scale" value="0.01 0.01 0.01"/>
+
+  <xacro:macro name="default_inertial" params="mass">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${mass}"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+  </xacro:macro>
+
+  <!-- Base -->
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <geometry>
+        <!-- Visible base to anchor the first joint -->
+        <box size="0.50 0.50 0.10"/>
+      </geometry>
+      <material name="dark_grey">
+        <color rgba="0.2 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.50 0.50 0.10"/>
+      </geometry>
+    </collision>
+    <xacro:default_inertial mass="5.0"/>
+  </link>
+
+  <joint name="joint1" type="revolute">
+    <origin xyz="0 0 0.10" rpy="0 0 0"/> <!-- Place joint1 above base top; links hang below -->
+    <axis xyz="0 0 -1"/> <!-- roll link1 about its long axis -->
+    <parent link="base_link"/>
+    <child link="link1"/>
+    <limit lower="-3.14" upper="3.14" effort="50" velocity="1.5"/>
+    <dynamics damping="0.1" friction="0.0"/>
+  </joint>
+
+  <link name="link1">
+    <visual>
+      <origin xyz="-0.20945 -0.22269 0.03755" rpy="-1.5708 0 0"/> <!-- original mesh offset -->
+      <geometry>
+        <mesh filename="${mesh_dir}/Link.STL" scale="${mesh_scale}"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0.1 0.4 0.8 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.01"/>
+      </geometry>
+    </collision>
+    <xacro:default_inertial mass="3.0"/>
+  </link>
+
+  <joint name="joint2" type="revolute">
+    <origin xyz="0 0 -${link1_length}" rpy="0 0 0"/> <!-- end of link1 -->
+    <axis xyz="1 0 0"/> <!-- roll link2 about its long axis (+X) -->
+    <parent link="link1"/>
+    <child link="link2"/>
+    <limit lower="-2.5" upper="2.5" effort="40" velocity="1.5"/>
+    <dynamics damping="0.1" friction="0.0"/>
+  </joint>
+
+  <link name="link2">
+    <visual>
+      <origin xyz="-0.03755 0.20945 -0.22269" rpy="0 0 -1.5708"/> <!-- original mesh offset -->
+      <geometry>
+        <mesh filename="${mesh_dir}/Link.STL" scale="${mesh_scale}"/>
+      </geometry>
+      <material name="light_grey">
+        <color rgba="0.7 0.7 0.7 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.01"/>
+      </geometry>
+    </collision>
+    <xacro:default_inertial mass="2.0"/>
+  </link>
+
+  <joint name="joint3" type="revolute">
+    <origin xyz="${link2_length} 0 0" rpy="0 0 0"/> <!-- end of link2 -->
+    <axis xyz="0 0 -1"/> <!-- roll link3 about its long axis (-Z) -->
+    <parent link="link2"/>
+    <child link="link3"/>
+    <limit lower="-2.5" upper="2.5" effort="30" velocity="2.0"/>
+    <dynamics damping="0.1" friction="0.0"/>
+  </joint>
+
+  <link name="link3">
+    <visual>
+      <origin xyz="-0.20945 -0.22269 0.03755" rpy="-1.5708 0 0"/> <!-- original mesh offset -->
+      <geometry>
+        <mesh filename="${mesh_dir}/Link.STL" scale="${mesh_scale}"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0.1 0.4 0.8 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.01"/>
+      </geometry>
+    </collision>
+    <xacro:default_inertial mass="1.5"/>
+  </link>
+
+  <joint name="joint4" type="revolute">
+    <origin xyz="0 0 -${link3_length}" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <parent link="link3"/>
+    <child link="tool0"/>
+    <limit lower="-3.14" upper="3.14" effort="20" velocity="2.5"/>
+    <dynamics damping="0.05" friction="0.0"/>
+  </joint>
+
+  <link name="tool0">
+    <visual>
+      <origin xyz="0.8 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="1.2 0.8 0.4"/>
+      </geometry>
+      <material name="orange">
+        <color rgba="0.9 0.4 0.1 1.0"/>
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="1.4 0.4 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="1.4 0.2 0.4"/>
+      </geometry>
+      <material name="orange">
+        <color rgba="0.9 0.4 0.1 1.0"/>
+      </material>
+    </visual>
+    <visual>
+      <origin xyz="1.4 -0.4 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="1.4 0.2 0.4"/>
+      </geometry>
+      <material name="orange">
+        <color rgba="0.9 0.4 0.1 1.0"/>
+      </material>
+    </visual>
+    <xacro:default_inertial mass="0.5"/>
+  </link>
+
+  <xacro:ros2_control_block controllers_file="${controllers_file_path}"/>
+</robot>
