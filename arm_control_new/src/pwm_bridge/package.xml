@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>arm_pwm_bridge</name>
+  <version>0.0.1</version>
+  <description>Simple PWM bridge for the 4-DOF arm: consumes JointTrajectory and drives Navigator PWM outputs via MAVLink.</description>
+
+  <maintainer email="eli-griffin@example.com">Eli Griffin</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>trajectory_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>builtin_interfaces</exec_depend>
+  <exec_depend>python3-pymavlink</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
